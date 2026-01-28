@@ -28,7 +28,7 @@ llm = ChatHuggingFace(llm=base_llm)
 
 def process(state: AgentState) -> AgentState:
     response = llm.invoke(state["messages"])
-
+    print("CURRENT STATE",state["messages"])
     return {
         "messages": state["messages"] + [response]
     }
@@ -54,3 +54,17 @@ while True:
 
     print("\nAssistant:", conversation_history[-1].content)
     print("-" * 50)
+
+
+with open("logging.txt","w") as file:
+    file.write("Conversatin history\n\n")
+
+    for message in conversation_history:
+        if isinstance(message,HumanMessage):
+            file.write(f"You: {message.content}\n")
+        elif isinstance(message,AIMessage):
+            file.write(f"AI: {message.content}\n\n")
+
+    file.write("End of Conversation")
+
+print("Conversation saved to the logging file")
