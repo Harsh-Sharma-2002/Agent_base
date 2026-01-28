@@ -1,41 +1,56 @@
 import os
-from langchain_core.messages import HumanMessage, AIMessage
-from langchain_openai import ChatOpenAI
-from typing import TypedDict,List,Union
-from langgraph.graph import StateGraph,START,END
 from dotenv import load_dotenv
+from typing import TypedDict
+
+from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+from langchain_core.messages import HumanMessage, AIMessage
+from langgraph.graph import StateGraph, START, END
+
 
 load_dotenv()
 
+HF_TOKEN = os.environ.get("HUGGINGFACE_API_KEY")
+if not HF_TOKEN:
+    raise RuntimeError("HUGGINGFACE_API_KEY not found")
+
+
 class AgentState(TypedDict):
-    messages: list[HumanMessage|AIMessage]
+    messages: list[HumanMessage | AIMessage]
 
-llm = ChatOpenAI(model="gpt-4o")
 
-def process(state:AgentState) -> AgentState:
-    """
-    The process node which will call the API
-    """
+base_llm = HuggingFaceEndpoint(
+    repo_id="mistralai/Mistral-7B-Instruct-v0.2",
+    huggingfacehub_api_token=HF_TOKEN,
+)
+
+llm = ChatHuggingFace(llm=base_llm)
+
+
+def process(state: AgentState) -> AgentState:
     response = llm.invoke(state["messages"])
-    state["messages"].append(AIMessage(content=response.content))
 
-    return state
+    return {
+        "messages": state["messages"] + [response]
+    }
 
 graph = StateGraph(AgentState)
+graph.add_node("process", process)
+graph.add_edge(START, "process")
+graph.add_edge("process", END)
 
-graph.add_node("process",process)
-graph.add_edge(START,"process")
-graph.add_edge("process",END)
 agent = graph.compile()
 
-conversation_history = []
+conversation_history: list[HumanMessage | AIMessage] = []
 
-user_input = input("Enter: ")
+while True:
+    user_input = input("Enter: ")
+    if user_input.lower() == "exit":
+        break
 
-while(user_input != "exit"):
     conversation_history.append(HumanMessage(content=user_input))
-    result = agent.invoke({"messaged":conversation_history})
 
-    print(result["messages"])
-    user_input = input("Enter ")
+    result = agent.invoke({"messages": conversation_history})
+    conversation_history = result["messages"]
 
+    print("\nAssistant:", conversation_history[-1].content)
+    print("-" * 50)
