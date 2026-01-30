@@ -77,7 +77,7 @@ def agent(state: AgentState) -> AgentState:
         print(f"\n USER: {user_input}")
         user_message = HumanMessage(content=user_input)
 
-    all_messages = [system_prompt] + list[state["messages"] + [user_message]]
+    all_messages = [system_prompt] + list(state["messages"] + [user_message])
 
     response = model.invoke(all_messages)
     print(f'AI: {response.content}')
@@ -93,14 +93,14 @@ def should_cont(state: AgentState) -> str:
             return "end"
         return "continue"
     
-def print_m(state: AgentState):
+def print_m(messages):
     """
-    made to make the messages more readable 
+    made to make the messages more readable
     """
-
-    for m in state["messages"][-3:]:
-        if isinstance(m,ToolMessage):
+    for m in messages[-3:]:
+        if isinstance(m, ToolMessage):
             print(f"\n TOOL RESULT: {m.content}")
+
 
 
 graph = StateGraph(AgentState)
@@ -118,4 +118,14 @@ graph.add_conditional_edges(source="agent",
                             })
 app = graph.compile()
 
-app.invoke()
+def run_doc_agent():
+    print("\n ======== DRAFTER ========")
+    state = {"messaged": []}
+
+    for step in app.stream(state,stream_mode="values"):
+        if "messages" in step:
+            print_m(step["messages"])
+
+    print("\n ======== DRAFTER FINISHED ========")
+
+run_doc_agent()
