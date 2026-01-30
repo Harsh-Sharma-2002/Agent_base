@@ -25,19 +25,33 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage],add_messages]
 
 @tool
-def add(a:int,b:int) -> int:
+def add(a:int,b:int):
     """
     This is a tool that adds two numbers
     """
     return a + b
 
+@tool
+def sub(a:int,b:int):
+    """
+    This is a tool that subtracts two numbers
+    """
+    return a - b
+
+@tool
+def multiply(a:int,b:int):
+    """
+    This is a tool that multiplies two numbers
+    """
+    return a*b
+
 # Tool Binding section
-tools = [add]
+tools = [add,sub,multiply]
 llm.bind_tools(tools)
 
 def model_call(state:AgentState) -> AgentState:
     sys_prompt = SystemMessage(content=  "You are an AI assistant.\n"
-        "You MUST use the provided tools to perform arithmetic.\n"
+        "You MUST use the provided tools to perform arithgitmetic.\n"
         "Do NOT calculate numbers mentally.\n"
         "If arithmetic is required, call the appropriate tool.")
     response = llm.invoke([sys_prompt] + state["messages"])
