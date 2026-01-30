@@ -92,3 +92,30 @@ def should_cont(state: AgentState) -> str:
         if (isinstance(msg,ToolMessage) and "saved" in msg.content.lower() and "document" in msg.content.lower()):
             return "end"
         return "continue"
+    
+def print_m(state: AgentState):
+    """
+    made to make the messages more readable 
+    """
+
+    for m in state["messages"][-3:]:
+        if isinstance(m,ToolMessage):
+            print(f"\n TOOL RESULT: {m.content}")
+
+
+graph = StateGraph(AgentState)
+
+graph.add_node("agent",agent)
+graph.add_node("tools",ToolNode(tools))
+
+graph.add_edge(START,"agent")
+graph.add_edge("agent","tools")
+graph.add_conditional_edges(source="agent",
+                            path=should_cont,
+                            path_map={
+                                "end" : END,
+                                "continue" : "agent"
+                            })
+app = graph.compile()
+
+app.invoke()
